@@ -1,0 +1,41 @@
+# Parameter file for rg-2018-03-09_cerebellum.py
+#
+data:
+  x0: 44
+  x1: 12572
+  y0: 44
+  y1: 12572
+  z0: 14
+  z1: 3074
+  tile-size: 2560
+
+aff:
+  mx: 116
+  my: 116
+  mz: 45
+  vx: 464
+  vy: 464
+  vz: 180
+  px: 44
+  py: 44
+  pz: 14
+
+zwatershed:
+  find-basins:
+    a-low: .05
+    a-high: .8
+    a-rel: 0
+  aggregate:
+    s-dust: 150
+    s-thres: 150
+    s-dust-merge: .2
+    s-mst-merge: .5
+  chunkZ: 180
+
+waterz:
+    mf: "aff85_his256"
+    thres: "0.5"
+    chunkZ: 90
+
+files:
+    result-path: "/n/coxfs01/donglai/jwr/20um_20180720/"
