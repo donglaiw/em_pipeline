@@ -2,7 +2,7 @@ import numpy as np
 import h5py
 from scipy.misc import imread,imresize
 
-def dataset(dataset_dict, x0, x1, y0, y1, z0, z1, tile_sz, tile_ratio=1, tile_resize_mode='bilinear'):
+def dataset(dataset_dict, x0, x1, y0, y1, z0, z1, tile_sz, tile_ratio=1.0, tile_resize_mode='bilinear'):
     # no padding at the boundary
     result = np.zeros((z1-z0, y1-y0, x1-x0), np.uint8)
     c0 = x0 // tile_sz # floor
@@ -15,7 +15,7 @@ def dataset(dataset_dict, x0, x1, y0, y1, z0, z1, tile_sz, tile_ratio=1, tile_re
             for column in range(c0, c1):
                 path = pattern.format(row=row+1, column=column+1)
                 patch = imread(path, 0)
-                if tile_ratio != 1:                                                                  
+                if tile_ratio != 1.0: # float -> fraction
                     patch = imresize(patch, tile_ratio, tile_resize_mode)
                 xp0 = column * tile_sz
                 xp1 = (column+1) * tile_sz
