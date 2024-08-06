@@ -120,6 +120,7 @@ def check_done():
                     if not os.path.exists(path):
                         print "undone: %d,%d,%d" % (x0a, y0a, z0a)
     print 'total jobs: ',count
+
 if __name__== "__main__":
     # python classify4-jwr_20um.py 0 0,1,2,3,4,5,6,7,9
     jobId = int(sys.argv[1])
