@@ -6,7 +6,7 @@ if __name__=='__main__':
     # python setup.py develop install
     setup(name='em_pipeline',
        version='1.0',
-       install_requires=['numpy','scipy','h5py'],
+       install_requires=['numpy','scipy','h5py','yaml'],
        packages=['em_pipeline'])
 
 
