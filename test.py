@@ -7,6 +7,7 @@ from em_util.ng import *
 opt = sys.argv[1]
 fn_aff = '/data/adhinart/em100um/output/Zebrafinch_UNet_LR/test.zarr'
 Dd = "/data/projects/weilab/dataset/zebrafinch/"
+Do = '/data/projects/weilab/weidf/eng/db/zebrafinch/'
 if opt == '0':
     # check the size of the zarr file
     import zarr
@@ -24,12 +25,20 @@ elif opt[0] == '1':
         s.layers['image'] = neuroglancer.ImageLayer(source=D0)
     
     if opt == '1': 
-        # visualize mask
-    zz = 1000
-    mask = read_image(f'{Dd}/mask_align_10nm_thres/{zz:04d}.png')
-    res = np.array([9,9,20])
-    with viewer.txn() as s:
-        s.layers['image'] = neuroglancer.ImageLayer(source=D0)
-        s.layers.append(name='mask',layer=ng_layer(mask[None], res, oo=[0,0,zz]))
-    
+        # visualize bv mask
+        zz = 1000
+        mask = read_image(f'{Dd}/mask_align_10nm_thres/{zz:04d}.png')
+        res = np.array([9,9,20])
+        with viewer.txn() as s:
+            s.layers['image'] = neuroglancer.ImageLayer(source=D0)
+            s.layers.append(name='mask',layer=ng_layer(mask[None], res, oo=[0,0,zz]))
+    elif opt == '1.1': 
+        # visualize seg chunk result
+        zz = 0
+        mask = read_h5(f'{Do}/waterz/0_10.h5', ['seg'])
+        res = np.array([9,9,20])
+        with viewer.txn() as s:
+            s.layers['image'] = neuroglancer.ImageLayer(source=D0)
+            s.layers.append(name='mask',layer=ng_layer(mask, res, oo=[0,0,zz]))
+   
     print(viewer)

@@ -55,16 +55,20 @@ def get_arguments():
     
     
 if __name__== "__main__":
-    # python main.py -c em_pipeline/data/j0126.yaml -t waterz -i 0 -n 10
+    # sa zf
+    # python main.py -c em_pipeline/data/j0126.yaml -t waterz
+    # python main.py -c em_pipeline/data/j0126.yaml -t waterz -i 0 -n 57
      
     args = get_arguments()
-    task = get_class(args.task, args.conf_file)
+    task = get_class(args.conf_file, args.task)
         
     if args.job_num == 0: # write cluster cmd files
-        cmd = 'python /data/projects/weilab/weidf/lib/em_pipeline/main.py -c {args.conf_file} -t {args.task} -i %d - n %d'      
-        output_file = task.get_output_name('slurm', '%d_%d.sh')
+        cmd = 'conda init\n'
+        cmd += 'conda activate zf \n'
+        cmd += f'python /data/projects/weilab/weidf/lib/em_pipeline/main.py -c {args.conf_file} -t {args.task} -i %d -n %d'
+        output_file = task.get_output_name('slurm', task.name)
         num_cpu, num_gpu = 1, 0
-        memory = 100000
+        memory = 150000
         job_num = task.get_job_num()
         slurm.write_slurm_all(cmd, output_file, job_num, args.partition, num_cpu, num_gpu, memory)
     else:

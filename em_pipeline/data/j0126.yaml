@@ -6,25 +6,26 @@ im:
   tile_shape: [4096, 4096]
 
 mask:
-  blood-vessel: "/data/projects/weilab/dataset/zebrafinch/mask_align_10nm_thres/%04d.png"
+  blood_vessel: "/data/projects/weilab/dataset/zebrafinch/mask_align_10nm_thres/%04d.png"
   border: "/data/projects/weilab/dataset/zebrafinch/mask_align_10nm_thres/%04d.txt"
-  border-width: 128
+  border_width: 128
 
 
 aff:
-  path: "/data/adhinart/em100um/output/Zebrafinch_UNet_LR/test.zarr"
-
+  path: "/data/adhinart/em100um/output/Zebrafinch_UNet_LR/test.pkl"
+  aff_shape: [12,285,1559,1333]
 waterz:
   low: 40
   high: 250
   mf: "aff75_his256_ran255"
-  thres: 1
-  num_z: 3
+  thres: [5]
+  num_z: 285
   nb: 5
   opt_frag: 1
   small_size: 150
   small_aff: 0.5
   small_dust: 50
+  bg_thres: 0.95
 
 rg:
   link: 0

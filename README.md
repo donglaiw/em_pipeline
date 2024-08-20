@@ -6,11 +6,10 @@ light-weighted multi-gpu, multi-core pipeline engine
 ```
 conda create -n "em_pipeline" python==3.8
 source activate em_pipeline
-conda install pip
 
 git clone git@github.com:donglaiw/em_pipeline.git
 cd em_pipeline
-pip install --editable .
+conda env create -f environment.yml
 cd ..
 
 
