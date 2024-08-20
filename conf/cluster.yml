@@ -1,0 +1,5 @@
+folder: "/data/projects/weilab/weidf/lib/em_pipeline/"
+env: ['conda init', 'conda activate zf']
+num_cpu: 8
+num_gpu: 0
+memory: 100000

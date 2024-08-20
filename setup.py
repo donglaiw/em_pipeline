@@ -4,6 +4,7 @@ import os
 if __name__=='__main__':
     # conda create -n em-pipeline python=2.7 numpy scipy h5py
     # python setup.py develop install
+    # /data/projects/weilab/weidf/lib/miniconda3/envs/zf/bin/pip
     setup(name='em_pipeline',
        version='1.0',
        install_requires=['numpy','scipy','h5py','yaml'],

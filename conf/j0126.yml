@@ -18,17 +18,22 @@ waterz:
   low: 40
   high: 250
   mf: "aff75_his256_ran255"
-  thres: [5]
-  num_z: 285
+  thres: [1]
+  num_z: 100
   nb: 5
   opt_frag: 1
   small_size: 150
   small_aff: 0.5
   small_dust: 50
   bg_thres: 0.95
+  debug: 1
 
 rg:
   link: 0
 
 output:
   path: "/data/projects/weilab/weidf/eng/db/zebrafinch/"
+
+eval:
+  val: /data/projects/weilab/dataset/zebrafinch/valid_12_skeletons.h5
+  test: /data/projects/weilab/dataset/zebrafinch/test_12_skeletons.h5

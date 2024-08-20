@@ -1,9 +1,7 @@
-import os
 import argparse
-import yaml
-from em_pipeline.task import *
+from em_pipeline.tasks import get_task
+from em_util.io import read_yml
 from em_util.cluster import slurm
-from em_util.io import mkdir
 
 def get_arguments():
     """
@@ -16,11 +14,18 @@ def get_arguments():
         description="EM pipeline for 3D neuron segmentation"
     )
     parser.add_argument(
+        "-s",
+        "--cluster-file",
+        type=str,
+        help="path to the cluster configuration file",
+        default='conf/cluster.yml',        
+    )
+    parser.add_argument(
         "-c",
         "--conf-file",
         type=str,
-        help="path to the configuration file",
-        required=True,
+        help="path to the project configuration file",
+        default='conf/j0126.yml',        
     )
     parser.add_argument(
         "-t",
@@ -50,26 +55,34 @@ def get_arguments():
         help="cluster partition name",
         default="shared",
     )
+    parser.add_argument(
+        "-e",
+        "--eval",
+        type=str,
+        help="evaluation data",
+        default="valid",
+    )
+    
     
     return parser.parse_args()        
     
     
 if __name__== "__main__":
     # sa zf
-    # python main.py -c em_pipeline/data/j0126.yaml -t waterz
-    # python main.py -c em_pipeline/data/j0126.yaml -t waterz -i 0 -n 57
+    # python main.py  -t waterz
+    # python main.py -t waterz -i 0 -n 57
      
     args = get_arguments()
-    task = get_class(args.conf_file, args.task)
+    task = get_task(args.conf_file, args.task)
         
     if args.job_num == 0: # write cluster cmd files
-        cmd = 'conda init\n'
-        cmd += 'conda activate zf \n'
-        cmd += f'python /data/projects/weilab/weidf/lib/em_pipeline/main.py -c {args.conf_file} -t {args.task} -i %d -n %d'
+        conf = read_yml(args.cluster_file)
+        cmd = '\n'.join(conf['env'])
+        cmd += f'\ncd {conf["folder"]}\n'
+        cmd += f'\npython main.py -c {args.conf_file} -t {args.task} -i %d -n %d'
         output_file = task.get_output_name('slurm', task.name)
-        num_cpu, num_gpu = 1, 0
-        memory = 150000
         job_num = task.get_job_num()
-        slurm.write_slurm_all(cmd, output_file, job_num, args.partition, num_cpu, num_gpu, memory)
+        slurm.write_slurm_all(cmd, output_file, job_num, args.partition, \
+            conf['num_cpu'], conf['num_gpu'], conf['memory'])
     else:
         task.run(args.job_id, args.job_num)
