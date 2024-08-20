@@ -31,13 +31,13 @@ pip install --editable .
 - step 1. voxel to supervoxel (region graph)
     - Generate waterz chunk segmentation
       ```
-      python main.py -c em_pipeline/data/j0126.yaml -t waterz
+      python main.py -c conf/j0126.yaml -t waterz
       ```   
     - Link waterz chunk segmentation into a global segmentation
       ```
-      python main.py -c em_pipeline/data/j0126.yaml -t waterz-stats
-      python main.py -c em_pipeline/data/j0126.yaml -t rg-border
-      python main.py -c em_pipeline/data/j0126.yaml -t rg-all
+      python main.py -c conf/j0126.yaml -t waterz-stats
+      python main.py -c conf/j0126.yaml -t rg-border
+      python main.py -c conf/j0126.yaml -t rg-all
       ```
 
 - step 2. region graph algorithm
