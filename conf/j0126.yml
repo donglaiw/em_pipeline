@@ -8,7 +8,7 @@ mask:
   blood_vessel: "/data/projects/weilab/dataset/zebrafinch/mask_align_10nm_thres/%04d.png"
   soma: "/data/projects/weilab/dataset/zebrafinch/yl_cb_80nm.h5"
   soma_ratio: [4, 8, 8]
-  soma_id0: 4000000000
+  soma_id0: 20000000
   border: "/data/projects/weilab/dataset/zebrafinch/mask_align_10nm_thres/%04d.txt"
   border_width: 128
 

@@ -19,7 +19,7 @@ class WaterzSoma2DTask(Task):
     
     def run(self, job_id, job_num):
         # convert affinity to waterz and region graph        
-        output_name = self.get_output_name(file_name=f"{job_id}_{job_num}.txt")
+        output_name = self.get_output_name(file_name=f"{job_id}_{job_num}_soma2d.h5")
         if not os.path.exists(output_name):
             im_size = self.conf['im']['shape']
             output_folder = os.path.dirname(output_name)
@@ -35,73 +35,75 @@ class WaterzSoma2DTask(Task):
             aff = dask_array[:3, z0: z1].compute()
             aff[aff < self.param['low']] = 0           
             
-            for z in range(z0, z1):
-                output_h5 = os.path.join(output_folder, f"{z:04d}_soma2d.h5")
-                if not os.path.exists(output_h5):            
-                    print(f'{z:04d}')
+            seg_out = np.zeros(aff.shape[1:], np.uint32)
+            max_id = 0
+            soma_id0 = self.conf['mask']['soma_id0'] 
+            for z in range(z0, z1):                
+                print(f'{z:04d}')
 
-                    print('\t remove by blood vessel and myeline mask')
-                    # blood vessel
-                    mask_bv = read_image(self.conf['mask']['blood_vessel'] % (z)) == 0                
-                    # border
-                    bd = np.loadtxt(self.conf['mask']['border'] % (z0+z)).astype(int)
-                    mask_bv[:bd[0]+border_width] = 0
-                    mask_bv[bd[1]-border_width:] = 0
-                    mask_bv[:, :bd[2]+border_width] = 0
-                    mask_bv[:, bd[3]-border_width:] = 0
-                    aff[:, z - z0] = aff[:, z - z0] * mask_bv
-        
-                    print('\t run initial waterz')
-                    seg, rg = waterz.waterz(aff[:, z-z0 : z-z0+1], self.param['thres'], merge_function = self.param['mf'], \
-                                        aff_threshold = [self.param['low'], self.param['high']], \
-                                        fragments_opt = self.param['opt_frag'], fragments_seed_nb = self.param['nb'],\
-                                        bg_thres = self.param['bg_thres'], return_rg=True, rebuild=do_rebuild)
-                    do_rebuild = False                    
-                    seg = seg[0][0] # 2D seg
-                    rg = rg[0]
-
-                    print('\t merge/split by soma mask')
-                    z_soma = int(np.round(z / soma_ratio[0]))
-                    mask_soma = zoom(np.array(soma_fid[z_soma]), soma_ratio[1:], order=0)[:im_size[1], :im_size[2]]
-                    soma_id0 = self.conf['mask']['soma_id0'] 
-                    if mask_soma.max() > 0:
-                        relabel = np.arange(seg.max() + 1).astype(seg.dtype)
-                        soma_ids = np.unique(mask_soma)
-                        soma_ids = soma_ids[soma_ids>0]
-                        seg_ids = [None] * len(soma_ids)
-                        # fix false split
-                        for i, soma_id in enumerate(soma_ids):
-                            uid = np.unique(seg[mask_soma == soma_id])
-                            seg_ids[i] = uid[uid > 0]
-                            relabel[seg_ids[i]] = soma_id0 + soma_id
-                        rg[0] = relabel[rg[0]]
-                        # ? merge repeated rg
+                print('\t remove by blood vessel and myeline mask')
+                # blood vessel
+                mask_bv = read_image(self.conf['mask']['blood_vessel'] % (z)) == 0                
+                # border
+                bd = np.loadtxt(self.conf['mask']['border'] % (z)).astype(int)
+                mask_bv[:bd[0]+border_width] = 0
+                mask_bv[bd[1]-border_width:] = 0
+                mask_bv[:, :bd[2]+border_width] = 0
+                mask_bv[:, bd[3]-border_width:] = 0
+                aff[:, z - z0] = aff[:, z - z0] * mask_bv
+    
+                print('\t run initial waterz')
+                seg = waterz.waterz(aff[:, z-z0 : z-z0+1], self.param['thres'], merge_function = self.param['mf'], \
+                                    aff_threshold = [self.param['low'], self.param['high']], \
+                                    fragments_opt = self.param['opt_frag'], fragments_seed_nb = self.param['nb'],\
+                                    bg_thres = self.param['bg_thres'], rebuild=do_rebuild)
+                do_rebuild = False               
+                # remap the 2D seg
+                seg, _ = fastremap.renumber(seg[0][0], in_place=True)
+                seg = seg.astype(np.uint32)
+                seg_max = seg.max()                
+                
+                print('\t merge/split by soma mask')
+                z_soma = int(np.round(z / soma_ratio[0]))
+                mask_soma = zoom(np.array(soma_fid[z_soma]), soma_ratio[1:], order=0)[:im_size[1], :im_size[2]]
+                
+                if mask_soma.max() > 0:
+                    relabel = np.arange(seg.max() + 1).astype(seg.dtype)
+                    soma_ids = np.unique(mask_soma)
+                    soma_ids = soma_ids[soma_ids>0]
+                    seg_ids = [None] * len(soma_ids)
+                    # fix false split
+                    for i, soma_id in enumerate(soma_ids):
+                        uid = np.unique(seg[mask_soma == soma_id])
+                        seg_ids[i] = uid[uid > 0]
+                        relabel[seg_ids[i]] = soma_id0 + soma_id
+                    
+                    # fix false merge
+                    ui, uc = np.unique(np.hstack(seg_ids), return_counts=True)
+                    for i in ui[uc > 1]:
+                        soma_split = [soma_ids[j] for j in range(len(soma_ids)) if i in seg_ids[j]]
+                        bb = compute_bbox(seg == i)
+                        seg_split = seg[bb[0]: bb[1]+1, bb[2]: bb[3]+1]
+                        seed_split = np.zeros(seg_split.shape, dtype=seg.dtype)
+                        for j in soma_split:
+                            seed_split[mask_soma[bb[0]: bb[1]+1, bb[2]: bb[3]+1] == j] = j
+                        aff_split = aff[1:, z - z0, bb[0]: bb[1]+1, bb[2]: bb[3]+1]
+                        boundary = 1.0 - 0.5*(aff_split[0].astype(np.float32) + aff_split[1]) / 255.0
+                        out_split = mahotas.cwatershed(boundary, seed_split)
+                        out_split[seg_split != i] = 0
+                        print(f'\t split soma {soma_split}')
+                        for j in soma_split:
+                            seg_split[out_split == j] = soma_id0 + j
                         
-                        # fix false merge
-                        ui, uc = np.unique(np.hstack(seg_ids), return_counts=True)
-                        for i in ui[uc > 1]:
-                            soma_split = [soma_ids[j] for j in range(len(soma_ids)) if i in seg_ids[j]]
-                            bb = compute_bbox(seg == i)
-                            seg_split = seg[bb[0]: bb[1]+1, bb[2]: bb[3]+1]
-                            seed_split = np.zeros(seg_split.shape, dtype=seg.dtype)
-                            for j in soma_split:
-                                seed_split[mask_soma[bb[0]: bb[1]+1, bb[2]: bb[3]+1] == j] = j
-                            aff_split = aff[1:, z - z0, bb[0]: bb[1]+1, bb[2]: bb[3]+1]
-                            boundary = 1.0 - 0.5*(aff_split[0].astype(np.float32) + aff_split[1]) / 255.0
-                            out_split = mahotas.cwatershed(boundary, seed_split)
-                            out_split[seg_split != i] = 0
-                            print(f'\t split soma {soma_split}')
-                            for j in soma_split:
-                                seg_split[out_split == j] = soma_id0 + j
-                            
-                        # remove the false-merge seg from rg
-                        gid = (rg[0]==i).sum(axis=1)==0
-                        rg[0] = rg[0][gid]
-                        rg[1] = rg[1][gid]
-                    seg[seg<soma_id0] = relabel[seg[seg<soma_id0]]
-                    print('\t save output')  
-                    write_h5(output_h5, [seg, rg[0], rg[1]], ['seg', 'id', 'score'])
-            np.savetxt(output_name, [1])
+                    seg[seg < soma_id0] = relabel[seg[seg < soma_id0]]                
+                seg[(seg > 0) * (seg < soma_id0)] += max_id
+                max_id += seg_max
+                seg_out[z - z0] = seg
+            
+            print('\tcreate region graph') 
+            rg = waterz.getRegionGraph(aff, seg_out, 1, self.param['mf'], rebuild=False)
+            print('\t save output')  
+            write_h5(output_name, [seg_out, rg[0], rg[1]], ['seg', 'id', 'score'])
         
 class WaterzTask(Task):
     def __init__(self, conf_file, name='waterz'):
