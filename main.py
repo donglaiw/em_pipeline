@@ -78,7 +78,7 @@ if __name__== "__main__":
     if args.job_num == 0: # write cluster cmd files
         conf = read_yml(args.cluster_file)
         #cmd = '\n'.join(conf['env'])
-        cmd += f'\ncd {conf["folder"]}\n'
+        cmd = f'\ncd {conf["folder"]}\n'
         cmd += f'\n{conf["python"]}/python main.py -c {args.conf_file} -t {args.task} -i %d -n %d'
         output_file = task.get_output_name('slurm', task.name)
         job_num = task.get_job_num()

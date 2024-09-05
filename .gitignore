@@ -3,3 +3,4 @@ em_pipeline.egg-info/
 dist/
 __pycache__
 em_pipeline/__pycache__
+*.swp
