@@ -7,7 +7,7 @@ from em_util.ng import *
 opt = sys.argv[1]
 fn_aff = '/data/adhinart/em100um/output/Zebrafinch_UNet_LR/test.zarr'
 Dd = "/data/projects/weilab/dataset/zebrafinch/"
-Do = '/data/projects/weilab/weidf/eng/db/zebrafinch2/'
+Do = '/data/projects/weilab/weidf/eng/db/zebrafinch/'
 if opt == '0':
     # check the size of the zarr file
     import zarr
@@ -33,10 +33,13 @@ elif opt[0] == '1':
             s.layers['image'] = neuroglancer.ImageLayer(source=D0)
             s.layers.append(name='mask',layer=ng_layer(mask[None], res, oo=[0,0,zz]))
     elif opt == '1.1': 
+        #ls;python -i test.py 1.1
         # visualize seg chunk result
         zz = 700
         #mask = read_h5(f'{Do}/waterz/0_10.h5', ['seg'])
-        mask = read_h5(f'{Do}/waterz/7_57.h5', ['seg'])
+        #mask = read_h5(f'{Do}/waterz/14_114_aff3.h5', ['main'])
+        zz = 7
+        mask = read_h5(f'{Do}/waterz/{zz:04d}_soma2d.h5', ['seg'])[None]
         res = np.array([9,9,20])
         with viewer.txn() as s:
             s.layers['image'] = neuroglancer.ImageLayer(source=D0)

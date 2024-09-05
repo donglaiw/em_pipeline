@@ -7,6 +7,8 @@ def get_task(conf, task):
     task0 = task if '-' not in task else task[:task.find('-')]
     if task == "waterz":
         return WaterzTask(conf, task0)
+    elif task == "waterz-soma2d":
+        return WaterzSoma2DTask(conf, task0)
     elif task == "waterz-stats":
         return WaterzStatsTask(conf, task0)
     elif task == 'rg-border':
