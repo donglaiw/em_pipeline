@@ -8,8 +8,43 @@ import zwatershed
 import cc3d, fastremap
 import mahotas
 from scipy.ndimage import zoom
-from em_util.io import read_image, mkdir, write_h5, read_h5, read_vol, compute_bbox
+from em_util.io import read_image, write_h5, read_h5, compute_bbox
+from em_util.seg import segs_to_iou
+from waterz.region_graph import merge_id
 
+class WaterzSoma2DIOUTask(Task):
+    def __init__(self, conf_file, name='waterz-somaIOU'):
+        super().__init__(conf_file, name)
+        
+    def get_job_num(self):
+        return self.get_zchunk_num()
+    
+    def run(self, job_id, job_num):
+        # convert affinity to waterz and region graph        
+        input_name = self.get_output_name(file_name=f"{job_id}_{job_num}_soma2d.h5")
+        output_iou_name = self.get_output_name(file_name=f"{job_id}_{job_num}_soma2d_iou.h5")
+        iou_thres = self.conf['waterz']['iou_thres']
+        output_mapping_name = self.get_output_name(file_name=f"{job_id}_{job_num}_soma2d_iou-{iou_thres}.h5")
+        do_load = True
+        if not os.path.exists(output_iou_name):
+            seg = read_h5(input_name, ['seg'])
+            get_seg = lambda x : seg[x]
+            iou = segs_to_iou(get_seg, range(seg.shape[0]))
+            write_h5(output_iou_name, iou)
+            do_load = False
+        
+        if not os.path.exists(output_mapping_name): 
+            if do_load:
+                iou = read_h5(output_iou_name)        
+            iou = np.vstack(iou)
+            soma_id0 = self.conf['mask']['soma_id0']
+            # ids that are not related to soma
+            iou = iou[(iou[:,:2] > soma_id0).max(axis=1) == 0]
+            score = iou[:, 4].astype(float) / (iou[:, 2] + iou[:, 3] - iou[:, 4])            
+            gid = score >= iou_thres
+            relabel = merge_id(iou[gid, 0].astype(np.uint32), iou[gid, 1].astype(np.uint32))
+            write_h5(output_mapping_name, relabel)
+ 
 class WaterzSoma2DTask(Task):
     def __init__(self, conf_file, name='waterz-soma'):
         super().__init__(conf_file, name)
@@ -29,6 +64,7 @@ class WaterzSoma2DTask(Task):
             z1 = min(num_z * (job_id + 1), im_size[0])
             do_rebuild = True
             soma_fid = h5py.File(self.conf['mask']['soma'], 'r')['main']
+            soma_zmax = soma_fid.shape[0] - 1
             soma_ratio = self.conf['mask']['soma_ratio']
             print('\t get affinity')
             dask_array = pickle.load(open(self.conf['aff']['path'], "rb"))
@@ -64,7 +100,7 @@ class WaterzSoma2DTask(Task):
                 seg_max = seg.max()                
                 
                 print('\t merge/split by soma mask')
-                z_soma = int(np.round(z / soma_ratio[0]))
+                z_soma = min(soma_zmax, int(np.round(z / soma_ratio[0])))
                 mask_soma = zoom(np.array(soma_fid[z_soma]), soma_ratio[1:], order=0)[:im_size[1], :im_size[2]]
                 
                 if mask_soma.max() > 0:
@@ -77,7 +113,6 @@ class WaterzSoma2DTask(Task):
                         uid = np.unique(seg[mask_soma == soma_id])
                         seg_ids[i] = uid[uid > 0]
                         relabel[seg_ids[i]] = soma_id0 + soma_id
-                    
                     # fix false merge
                     ui, uc = np.unique(np.hstack(seg_ids), return_counts=True)
                     for i in ui[uc > 1]:
@@ -94,8 +129,7 @@ class WaterzSoma2DTask(Task):
                         print(f'\t split soma {soma_split}')
                         for j in soma_split:
                             seg_split[out_split == j] = soma_id0 + j
-                        
-                    seg[seg < soma_id0] = relabel[seg[seg < soma_id0]]                
+                    seg[seg < soma_id0] = relabel[seg[seg < soma_id0]]
                 seg[(seg > 0) * (seg < soma_id0)] += max_id
                 max_id += seg_max
                 seg_out[z - z0] = seg
