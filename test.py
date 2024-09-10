@@ -128,7 +128,7 @@ elif opt[0] == '2': # create benchmark datasets
             fn = f'{Do}/soma2d_{sz}_iou-0.8.h5'
             mask = read_h5(fn)
             count = seg3d_to_zcount(mask)
-            print((count[1]==100).sum(), ((count[1]>50)*(count[1]<100)).sum())
+            print((count[1]==100).sum(),((count[1]>=50)*(count[1]<100)).sum(), ((count[1]>=20)*(count[1]<50)).sum())
         elif opt == '2.31':
             from waterz.region_graph import merge_id
             iou_thres = 0.8
