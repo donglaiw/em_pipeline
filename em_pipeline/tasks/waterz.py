@@ -95,7 +95,7 @@ class WaterzSoma2DTask(Task):
                                     bg_thres = self.param['bg_thres'], rebuild=do_rebuild)
                 do_rebuild = False               
                 # remap the 2D seg
-                seg, _ = fastremap.renumber(seg[0][0], in_place=True)
+                seg, _ = fastremap.renumber(cc3d.connected_components(seg[0][0]), in_place=True)
                 seg = seg.astype(np.uint32)
                 seg_max = seg.max()                
                 
