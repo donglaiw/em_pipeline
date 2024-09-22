@@ -84,8 +84,11 @@ elif opt[0] == '1':
         res = [9,9,20]
         sz = 1024;oset = [4820, 4939,0]
         #soma = read_h5(f'{Do}//test_agglo/soma2d_{sz}_iou-0.8.h5')
-        soma = read_h5(f'{Do}//test_agglo/soma2d_{sz}_iou0.8_sz0.6.h5')
-        ffn = read_h5(f'{Do}/test_agglo/ffn_{sz}.h5')
+        #soma = read_h5(f'{Do}//test_agglo/soma2d_{sz}_iou0.8_sz0.6.h5')
+        #soma = read_h5(f'{Do}//test_agglo/soma2d_{sz}_iou0.8_sz0.6_z1.h5')
+        soma = read_h5(f'{Do}//test_agglo/soma2d_{sz}_iou0.8_sz0.6_z1_os0.6.h5')
+        #ffn = read_h5(f'{Do}/test_agglo/ffn_{sz}.h5')
+        ffn = read_h5(f'{Do}/test_agglo/ffn_{sz}_r0.5.h5')
                 
         with viewer.txn() as s:
             s.layers['image'] = neuroglancer.ImageLayer(source=D0)
@@ -179,11 +182,15 @@ elif opt[0] == '2': # create benchmark datasets
                 iou = seg_to_iou(gt, mask)
                 score = iou[:, 4].astype(float) / (iou[:, 2] + iou[:, 3] - iou[:, 4])
                 # false split
+                # ffn_1024_glia: 
+                gid = [78,43,186,119,138,210,448,425,1128,703,553,816,986,96]
+                # bid = iou[score<0.5,0];bid[np.in1d(bid,gid,invert=True)]
                 # print(iou[score<0.5,1])
                 # false merge
                 print(iou[iou[:,3]-iou[:,4] > 0.5 * iou[:,4], 1])
                 # bin iou score
                 print(np.histogram(score,[0,0.5,0.8,1]))
+                score2 = score.copy();score2[np.in1d(iou[:,0],gid)]=-1;print(np.histogram(score2,[0,0.5,0.8,1]))
                 # print(iou[iou[:,1]==0])
             else:
                 count = seg3d_to_zcount(mask)
@@ -418,6 +425,7 @@ elif opt[0] == '2': # create benchmark datasets
             write_h5(f'{sn}_os{os_thres}-bb.h5', bbox)
 
         elif opt in ['2.35', '2.351']: # zaff
+            # not good...
             import waterz
             aff_thres = 1
             sn = f'{Do}/soma2d_{sz}_iou{iou_thres}_sz{sz_thres}_z{z_thres}'

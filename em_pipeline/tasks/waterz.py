@@ -7,7 +7,7 @@ import waterz
 import zwatershed
 import cc3d, fastremap
 import mahotas
-from scipy.ndimage import zoom
+from scipy.ndimage import zoom, binary_erosion
 from em_util.io import read_image, write_h5, read_h5, compute_bbox
 from em_util.seg import segs_to_iou
 from waterz.region_graph import merge_id
@@ -93,9 +93,17 @@ class WaterzSoma2DTask(Task):
                                     aff_threshold = [self.param['low'], self.param['high']], \
                                     fragments_opt = self.param['opt_frag'], fragments_seed_nb = self.param['nb'],\
                                     bg_thres = self.param['bg_thres'], rebuild=do_rebuild)
+                seg = seg[0][0]                
                 do_rebuild = False               
+                
+                # simple cc3d
+                # seg = cc3d.connected_components(seg)
+                # watershed + cc3d
+                seg_seed = cc3d.connected_components(binary_erosion(seg) * seg)
+                seg = mahotas.cwatershed(seg==0, seg_seed)
+                
                 # remap the 2D seg
-                seg, _ = fastremap.renumber(cc3d.connected_components(seg[0][0]), in_place=True)
+                seg, _ = fastremap.renumber(seg, in_place=True)              
                 seg = seg.astype(np.uint32)
                 seg_max = seg.max()                
                 
