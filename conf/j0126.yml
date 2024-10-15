@@ -15,6 +15,7 @@ mask:
 aff:
   path: "/data/adhinart/em100um/output/Zebrafinch_UNet_LR/test.pkl"
   aff_shape: [12, 285, 1559, 1333]
+
 waterz:
   low: 40
   high: 250
@@ -28,6 +29,11 @@ waterz:
   small_dust: 50
   bg_thres: 0.95
   iou_thres: 0.8
+
+branch:
+  s1_iou: 0.8
+  s1_sz: 0.6
+  s1_rg: 32
 
 rg:
   thres_z: 5

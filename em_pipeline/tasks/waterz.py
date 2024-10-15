@@ -12,39 +12,7 @@ from em_util.io import read_image, write_h5, read_h5, compute_bbox
 from em_util.seg import segs_to_iou
 from waterz.region_graph import merge_id
 
-class WaterzSoma2DIOUTask(Task):
-    def __init__(self, conf_file, name='waterz-somaIOU'):
-        super().__init__(conf_file, name)
-        
-    def get_job_num(self):
-        return self.get_zchunk_num()
-    
-    def run(self, job_id, job_num):
-        # convert affinity to waterz and region graph        
-        input_name = self.get_output_name(file_name=f"{job_id}_{job_num}_soma2d.h5")
-        output_iou_name = self.get_output_name(file_name=f"{job_id}_{job_num}_soma2d_iou.h5")
-        iou_thres = self.conf['waterz']['iou_thres']
-        output_mapping_name = self.get_output_name(file_name=f"{job_id}_{job_num}_soma2d_iou-{iou_thres}.h5")
-        do_load = True
-        if not os.path.exists(output_iou_name):
-            seg = read_h5(input_name, ['seg'])
-            get_seg = lambda x : seg[x]
-            iou = segs_to_iou(get_seg, range(seg.shape[0]))
-            write_h5(output_iou_name, iou)
-            do_load = False
-        
-        if not os.path.exists(output_mapping_name): 
-            if do_load:
-                iou = read_h5(output_iou_name)        
-            iou = np.vstack(iou)
-            soma_id0 = self.conf['mask']['soma_id0']
-            # ids that are not related to soma
-            iou = iou[(iou[:,:2] > soma_id0).max(axis=1) == 0]
-            score = iou[:, 4].astype(float) / (iou[:, 2] + iou[:, 3] - iou[:, 4])            
-            gid = score >= iou_thres
-            relabel = merge_id(iou[gid, 0].astype(np.uint32), iou[gid, 1].astype(np.uint32))
-            write_h5(output_mapping_name, relabel)
- 
+
 class WaterzSoma2DTask(Task):
     def __init__(self, conf_file, name='waterz-soma'):
         super().__init__(conf_file, name)
@@ -99,8 +67,10 @@ class WaterzSoma2DTask(Task):
                 # simple cc3d
                 # seg = cc3d.connected_components(seg)
                 # watershed + cc3d
-                seg_seed = cc3d.connected_components(binary_erosion(seg) * seg)
-                seg = mahotas.cwatershed(seg==0, seg_seed)
+                seg_seed = cc3d.connected_components(binary_erosion(seg) * seg, connectivity=6)
+                seg_mask = seg==0
+                seg = mahotas.cwatershed(seg_mask, seg_seed)
+                seg[seg_mask] = 0                
                 
                 # remap the 2D seg
                 seg, _ = fastremap.renumber(seg, in_place=True)              
@@ -143,7 +113,7 @@ class WaterzSoma2DTask(Task):
                 seg_out[z - z0] = seg
             
             print('\tcreate region graph') 
-            rg = waterz.getRegionGraph(aff, seg_out, 1, self.param['mf'], rebuild=False)
+            rg = waterz.getRegionGraph(aff, seg_out, 2, self.param['mf'], rebuild=False)
             print('\t save output')  
             write_h5(output_name, [seg_out, rg[0], rg[1]], ['seg', 'id', 'score'])
         
@@ -203,7 +173,7 @@ class WaterzTask(Task):
                     self.param['small_size'], self.param['small_aff'], self.param['small_dust'], -1)
                 
                 print('connected component')
-                seg = cc3d.connected_components(seg)
+                seg = cc3d.connected_components(seg, connectivity=6)
                 
                 # problem: soma can be near border
                 # print('remove border seg')

@@ -1,6 +1,9 @@
 folder: "/data/projects/weilab/weidf/lib/em_pipeline/"
-env: ["source ~/.bashrc", "/data/projects/weilab/weidf/lib/miniconda3/bin/conda activate zf"]
+env:
+  [
+    "source ~/.bashrc",
+    "/data/projects/weilab/weidf/lib/miniconda3/bin/conda activate zf",
+  ]
 python: "/data/projects/weilab/weidf/lib/miniconda3/envs/zf/bin/"
-num_cpu: 8
 num_gpu: 0
 memory: 100000

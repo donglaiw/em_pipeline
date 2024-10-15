@@ -56,6 +56,13 @@ def get_arguments():
         default="shared",
     )
     parser.add_argument(
+        "-nc",        
+        "--num-cpu",
+        type=int,
+        help="number of cpu",
+        default=1,
+    )
+    parser.add_argument(
         "-e",
         "--eval",
         type=str,
@@ -69,8 +76,9 @@ def get_arguments():
     
 if __name__== "__main__":
     # sa zf
-    # python main.py -t waterz
-    # python main.py -t waterz -i 0 -n 57
+    # python main.py -t waterz-soma2d -nc 8
+    # python main.py -t branch-chunk-s1
+    # python main.py -t waterz-soma2d -i 0 -n 57
      
     args = get_arguments()
     task = get_task(args.conf_file, args.task)
@@ -83,6 +91,6 @@ if __name__== "__main__":
         output_file = task.get_output_name('slurm', task.name)
         job_num = task.get_job_num()
         slurm.write_slurm_all(cmd, output_file, job_num, args.partition, \
-            conf['num_cpu'], conf['num_gpu'], conf['memory'])
+            args.num_cpu, conf['num_gpu'], conf['memory'])
     else:
         task.run(args.job_id, args.job_num)

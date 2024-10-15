@@ -13,8 +13,9 @@ class Task(object):
     def get_job_num(self):
         pass
 
-    def get_zchunk_num(self):
-        num_z = self.param['num_z']
+    def get_zchunk_num(self, num_z=None):
+        if num_z is None:
+            num_z = self.param['num_z']
         total_z = self.conf['im']['shape'][0]
         return (total_z + num_z - 1) // num_z      
     
